@@ -37,6 +37,8 @@ same code integrating more of the spectrum.</sub>
 the page to drive them, because a browser has no Resolume to route audio from.
 Nothing is uploaded.
 
+**Video:** [What it does, in 49 seconds](https://www.youtube.com/watch?v=l49OH5N5KUI)
+
 <!-- downloads:start -->
 
 ## Download
