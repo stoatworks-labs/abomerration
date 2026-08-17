@@ -31,6 +31,12 @@ the flat areas untouched, because that is what a real lens does. Rendered by
 Prism 16, Prism 32. The left column is the hard channel offset; the rest are the
 same code integrating more of the spectrum.</sub>
 
+**Try it in your browser, with your own footage:**
+[abomerration-demo.stoatworks-labs.com](https://abomerration-demo.stoatworks-labs.com)
+— the plugin's own shaders in WebGL2, with a kick-and-hats pattern synthesised on
+the page to drive them, because a browser has no Resolume to route audio from.
+Nothing is uploaded.
+
 <!-- downloads:start -->
 
 ## Download
