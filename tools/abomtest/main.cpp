@@ -23,6 +23,9 @@
         --sheet PATH      a contact sheet of every geometry and spectrum
         --size WxH        render size (default 640x360)
         --frames N        advance this many frames at 60 fps before writing (default 2)
+        --pipe            raw RGBA frames in on stdin, out on stdout
+        --script PATH     a `frame Parameter Name value` cue sheet for --pipe
+        --fps N           the cue sheet's frame rate (default 30)
 
     ## What each check can and cannot catch
 
@@ -532,6 +535,121 @@ void injectSpectrum( Abomerration& plugin, const std::vector< float >& bins )
 {
 	for( size_t i = 0; i < bins.size() && i < static_cast< size_t >( drive::kAudioBins ); ++i )
 		plugin.SetParamElementValue( Abomerration::PT_AUDIO, static_cast< unsigned int >( i ), bins[ i ] );
+}
+
+//---------------------------------------------------------------------------
+// Parameter automation for --pipe.
+//
+// A plain text file of `frame  Parameter Name  value` lines. Values are held
+// before the first key and after the last, and linearly interpolated between,
+// so the piece is edited by editing the cue sheet rather than by editing code.
+//
+// **Option and boolean parameters must STEP.** An option is read by rounding and
+// a boolean by a threshold, so a ramp between two settings passes through every
+// setting in between -- a slow move from Radial to Turbulent renders Linear and
+// Tangential on the way. Two keys one frame apart put the change on the frame
+// the cut chose.
+//---------------------------------------------------------------------------
+using Track = std::vector< std::pair< int, float > >;
+
+std::map< std::string, Track > loadScript( const std::string& path, std::string& error )
+{
+	std::map< std::string, Track > tracks;
+	std::ifstream file( path );
+	if( !file )
+	{
+		error = "cannot open " + path;
+		return tracks;
+	}
+
+	std::string line;
+	int lineNumber = 0;
+	while( std::getline( file, line ) )
+	{
+		++lineNumber;
+
+		const size_t hash = line.find( '#' );
+		if( hash != std::string::npos )
+			line = line.substr( 0, hash );
+
+		std::istringstream stream( line );
+		int frame = 0;
+		if( !( stream >> frame ) )
+			continue;// blank or comment
+
+		//The name can contain spaces and the value is the last field, so the
+		//rest of the line is split from the right rather than tokenised.
+		std::string rest;
+		std::getline( stream, rest );
+
+		const size_t lastSpace = rest.find_last_of( " \t" );
+		if( lastSpace == std::string::npos )
+		{
+			error = path + ":" + std::to_string( lineNumber ) + ": expected `frame Name value`";
+			return {};
+		}
+
+		std::string name  = rest.substr( 0, lastSpace );
+		const std::string value = rest.substr( lastSpace + 1 );
+
+		const size_t first = name.find_first_not_of( " \t" );
+		const size_t last  = name.find_last_not_of( " \t" );
+		if( first == std::string::npos )
+		{
+			error = path + ":" + std::to_string( lineNumber ) + ": no parameter name";
+			return {};
+		}
+		name = name.substr( first, last - first + 1 );
+
+		tracks[ name ].emplace_back( frame, std::strtof( value.c_str(), nullptr ) );
+	}
+
+	for( auto& entry : tracks )
+		std::sort( entry.second.begin(), entry.second.end(),
+		           []( const auto& a, const auto& b ) { return a.first < b.first; } );
+
+	return tracks;
+}
+
+float valueAt( const Track& track, int frame )
+{
+	if( track.empty() )
+		return 0.0f;
+	if( frame <= track.front().first )
+		return track.front().second;
+	if( frame >= track.back().first )
+		return track.back().second;
+
+	for( size_t i = 1; i < track.size(); ++i )
+	{
+		if( frame <= track[ i ].first )
+		{
+			const auto& a = track[ i - 1 ];
+			const auto& b = track[ i ];
+			const int span = b.first - a.first;
+			if( span <= 0 )
+				return b.second;
+			const float t = static_cast< float >( frame - a.first ) / static_cast< float >( span );
+			return a.second + ( b.second - a.second ) * t;
+		}
+	}
+
+	return track.back().second;
+}
+
+bool readExactly( void* into, size_t bytes )
+{
+	unsigned char* at = static_cast< unsigned char* >( into );
+	size_t left       = bytes;
+	while( left > 0 )
+	{
+		const size_t got = std::fread( at, 1, left, stdin );
+		if( got == 0 )
+			return false;
+		at += got;
+		left -= got;
+	}
+	return true;
 }
 
 struct Options
@@ -1747,6 +1865,186 @@ bool sheet( const std::string& path )
 	return writePng( path, cellW * cols, cellH * rows, sheetRgba );
 }
 
+/**
+    A synthetic kick-and-hats spectrum, and the transport that goes with it.
+
+    ---------------------------------------------------------------- why at all
+
+    Every other plugin in this fleet renders its video from footage and a cue
+    sheet and that is the whole story. This one is *sound-reactive*, so a render
+    with no audio in it would show the manual lens while the captions claimed
+    something else — which would make the video a misrepresentation rather than a
+    demonstration.
+
+    There is no audio to be had: the pipe carries raw frames, and the finished cut
+    is silent by design (the pipeline writes a voiceover script instead of a
+    soundtrack). So the drive is *generated* — a kick on every beat, hats on the
+    eighths and a bass note on the bar, at 120 bpm, written straight into the
+    parameter's spectrum elements the way a host writes them.
+
+    That makes the reaction on screen real: the same `drive::compute` runs on the
+    same kind of numbers, the beat lands on the grid because the transport is
+    driven too, and Show Field's meters move because they are reading this. What
+    it is not is a recording of the plugin listening to music, and the project's
+    description says so.
+
+    ------------------------------------------------------------ the units trap
+
+    The host writes **raw FFT magnitudes** and `updateAudio` takes their square
+    root. So a desired level of 0.9 has to be injected as 0.81, not 0.9 — inject
+    the level directly and everything arrives louder than intended, with the bass
+    band pinned near 1 and the depth controls looking like they do nothing.
+*/
+void injectRhythm( Abomerration& plugin, double seconds )
+{
+	constexpr double kBpm     = 120.0;
+	const double beats        = seconds * kBpm / 60.0;
+
+	const double beatPhase = beats - std::floor( beats );
+	const double hatPhase  = ( beats * 2.0 ) - std::floor( beats * 2.0 );
+	const double barPhase  = ( beats / 4.0 ) - std::floor( beats / 4.0 );
+
+	//Decays, not gates: a square pulse would make the reaction look like a
+	//parameter being switched rather than something following a sound.
+	const double kick = std::exp( -beatPhase * 7.0 );
+	const double hat  = std::exp( -hatPhase * 26.0 );
+	//A held note under the bar, so the mid band carries something between
+	//transients and Band Depth has a middle to route.
+	const double note = 0.35 + 0.35 * std::exp( -barPhase * 2.0 );
+
+	std::vector< float > level( drive::kAudioBins, 0.0f );
+
+	for( int i = 0; i < drive::kAudioBins; ++i )
+	{
+		double value = 0.0;
+
+		if( i < 4 )
+			value = 0.95 * kick;                       // bass: the kick
+		else if( i < 16 )
+			value = 0.55 * note + 0.25 * kick;         // mid: the note, plus the kick's body
+		else
+			value = 0.80 * hat * ( 1.0 - ( i - 16 ) / 96.0 );// treble: the hat, rolling off
+
+		//Squared, because updateAudio takes a square root of whatever the host
+		//wrote. See the comment above.
+		level[ i ] = static_cast< float >( value * value );
+	}
+
+	for( int i = 0; i < drive::kAudioBins; ++i )
+		plugin.SetParamElementValue( Abomerration::PT_AUDIO, static_cast< unsigned int >( i ), level[ i ] );
+
+	plugin.SetBeatInfo( static_cast< float >( kBpm ), static_cast< float >( barPhase ) );
+	plugin.SetTime( seconds );
+}
+
+/**
+    --pipe: real footage through the real plugin, on a cue sheet.
+
+    Frames arrive as raw RGBA on stdin and leave as raw RGBA on stdout, so ffmpeg
+    does the decoding and the encoding and this does the lens. That is how the
+    project video is made, and it is a render rather than a screen recording for a
+    reason worth stating: an FFGL plugin has no window and no UI of its own — its
+    control surface IS Resolume's inspector — so "filming the app" would mean
+    filming Arena, whose clip grid and effects browser are custom-drawn with
+    nothing in the accessibility tree to address.
+
+    What is on screen is genuinely this plugin's output, from the same class
+    Resolume loads. It is just not a photograph of Resolume, and the end card says
+    so.
+*/
+int runPipe( int width, int height, int fps, const std::string& scriptPath, const Options& options )
+{
+	std::map< std::string, Track > tracks;
+	if( !scriptPath.empty() )
+	{
+		std::string error;
+		tracks = loadScript( scriptPath, error );
+		if( !error.empty() )
+		{
+			std::fprintf( stderr, "abomtest: %s\n", error.c_str() );
+			return 1;
+		}
+	}
+
+	Target target = makeTarget( width, height );
+
+	Driver driver;
+	if( !applySets( driver.plugin, options ) )
+		return 2;
+
+	//Resolve the cue sheet's names once, against the plugin itself. A cue for a
+	//parameter that does not exist is a silent no-op otherwise, and the first
+	//sign of it is a beat in the finished video where nothing happens.
+	const auto byName = parameterIndex( driver.plugin );
+	std::vector< std::pair< unsigned int, const Track* > > bound;
+	for( const auto& entry : tracks )
+	{
+		const auto found = byName.find( entry.first );
+		if( found == byName.end() )
+		{
+			std::fprintf( stderr, "abomtest: no parameter named \"%s\" in the script\n",
+			              entry.first.c_str() );
+			return 1;
+		}
+		bound.emplace_back( found->second, &entry.second );
+	}
+
+	GLuint input = 0;
+	glGenTextures( 1, &input );
+	glBindTexture( GL_TEXTURE_2D, input );
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+	glBindTexture( GL_TEXTURE_2D, 0 );
+
+	const size_t frameBytes = static_cast< size_t >( width ) * height * 4;
+	std::vector< unsigned char > incoming( frameBytes );
+
+	int frame = 0;
+	while( readExactly( incoming.data(), frameBytes ) )
+	{
+		for( const auto& track : bound )
+			driver.plugin.SetFloatParameter( track.first, valueAt( *track.second, frame ) );
+
+		injectRhythm( driver.plugin, static_cast< double >( frame ) / static_cast< double >( fps ) );
+
+		//ffmpeg hands over rows top-down; glTexImage2D treats its first row as
+		//v = 0, which is the bottom. Flipping on the way in and again on the way
+		//out keeps every coordinate in this file meaning what it says everywhere
+		//else -- and it is the same flip uploadScene does, for the same reason.
+		const std::vector< unsigned char > flipped = flipRows( incoming, width, height );
+
+		glBindTexture( GL_TEXTURE_2D, input );
+		glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE,
+		                 flipped.data() );
+		glBindTexture( GL_TEXTURE_2D, 0 );
+
+		if( !driver.render( target, input, width, height ) )
+		{
+			std::fprintf( stderr, "abomtest: render failed at frame %d\n", frame );
+			return 1;
+		}
+
+		const std::vector< unsigned char > out = flipRows( readBytes( target ), width, height );
+		if( std::fwrite( out.data(), 1, frameBytes, stdout ) != frameBytes )
+		{
+			std::fprintf( stderr, "abomtest: short write at frame %d\n", frame );
+			return 1;
+		}
+
+		++frame;
+	}
+
+	std::fflush( stdout );
+	std::fprintf( stderr, "abomtest: %d frames\n", frame );
+
+	glDeleteTextures( 1, &input );
+	releaseTarget( target );
+	return 0;
+}
+
 } // namespace
 
 int main( int argc, char** argv )
@@ -1766,6 +2064,9 @@ int main( int argc, char** argv )
 	bool wantBench    = false;
 	bool wantQuad     = false;
 	int frames        = 2;
+	int fps           = 30;
+	bool pipeMode     = false;
+	std::string scriptPath;
 
 	for( int i = 1; i < argc; ++i )
 	{
@@ -1804,6 +2105,19 @@ int main( int argc, char** argv )
 			wantBench = true;
 		else if( arg == "--quadrature" )
 			wantQuad = true;
+		else if( arg == "--pipe" )
+			pipeMode = true;
+		else if( arg == "--script" )
+			scriptPath = next( "--script" );
+		else if( arg == "--fps" )
+		{
+			fps = std::atoi( next( "--fps" ).c_str() );
+			if( fps < 1 )
+			{
+				std::fprintf( stderr, "--fps must be at least 1\n" );
+				return 2;
+			}
+		}
 		else if( arg == "--frames" )
 		{
 			frames = std::atoi( next( "--frames" ).c_str() );
@@ -1853,7 +2167,7 @@ int main( int argc, char** argv )
 	//to run it on a machine with no working context.
 	const bool needsGL = !( wantDrive && outPath.empty() && scenePath.empty() && sheetPath.empty()
 	                        && !wantList && !wantField && !wantOffset && !wantSpectrum && !wantClock
-	                        && !wantPresets && !wantBench && !wantQuad );
+	                        && !wantPresets && !wantBench && !wantQuad && !pipeMode );
 
 	CGLContextObj context = nullptr;
 	if( needsGL )
@@ -1864,6 +2178,17 @@ int main( int argc, char** argv )
 			std::fprintf( stderr, "could not create an OpenGL 4 core context\n" );
 			return 1;
 		}
+	}
+
+	if( pipeMode )
+	{
+		const int status = runPipe( options.width, options.height, fps, scriptPath, options );
+		if( context != nullptr )
+		{
+			CGLSetCurrentContext( nullptr );
+			CGLDestroyContext( context );
+		}
+		return status;
 	}
 
 	bool ok = true;

@@ -61,7 +61,13 @@ struct HostValues
 	float sync         = 0.0f;
 	float beatDepth    = 0.0f;
 	float beatDecay    = 0.45f;
-	float beatDivision = 0.0f;
+	//Element 2, "Beat" -- NOT element 0, which is a quarter beat. This defaulted
+	//to 0 and the pulse fired four times per beat out of the box, which reads as
+	//a twitchy effect rather than as a wrong default. Found by rendering the
+	//project video against a static frame: the reaction repeated every 3.75
+	//frames at 30fps where 120 bpm demands 15, and every preset in the table
+	//says 2.0 because a beat is what anybody means.
+	float beatDivision = 2.0f;
 	float levelDepth   = 0.0f;
 	float bandDepth    = 0.0f;
 	float route        = 0.0f;
