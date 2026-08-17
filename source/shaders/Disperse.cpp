@@ -20,14 +20,14 @@ uniform float EdgeWeight;
 
 /// Frame height in pixels, and whether to prefilter. Together they turn a
 /// displacement in frame-height units into a sample spacing in pixels, which is
-/// what decides the mip level -- see `fetchInput`.
+/// what decides the mip level -- see fetchInput.
 uniform float FrameHeightPx;
 uniform bool Prefilter;
 
 in vec2 uv;
 out vec4 fragColor;
 
-/// Fetch in PICTURE space (v down), at a mip level covering `spacingPx` pixels.
+/// Fetch in PICTURE space (v down), at a mip level covering spacingPx pixels.
 ///
 /// Two things happen here and both are bugs somebody has already shipped:
 ///
@@ -55,7 +55,7 @@ vec4 fetchInput( vec2 p, float spacingPx )
 	//zero exactly on Nyquist.
 	//
 	//The first version of this used the gap itself and measurably under-filtered.
-	//`abomtest --quadrature` on a hard step edge, worst ripple of 255 for Prism
+	//abomtest --quadrature on a hard step edge, worst ripple of 255 for Prism
 	//8 / 16 / 32:
 	//
 	//    width d   16.6   8.7   1.7
