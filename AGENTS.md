@@ -134,7 +134,13 @@ overridden or no host can instantiate the plugin at all.
 
 ## What is genuinely verified, and what is assumed
 
-**Verified, by measurement, from a clean universal build — 22 checks, all
+**Verified in a real host:** the FFGL build has been **loaded into Resolume Arena
+and confirmed working**. That matters more than its one line suggests, because it
+is the only thing on this page that no check could have established — every check
+drives the plugin class directly or through `plugMain`, and none of them can say
+whether twenty-four controls present sensibly in somebody's inspector.
+
+**Verified, by measurement, from a clean universal build — 23 checks, all
 passing:**
 
 - the GLSL field against the C++ across all four geometries, worst disagreement
@@ -157,8 +163,9 @@ passing:**
 
 **Assumed, or simply not done:**
 
-- **It has never been loaded into Resolume or Resolve.** Not once. Everything
-  above is offline, on one Apple M4 Max.
+- **The OpenFX build has never been opened in Resolve**, Nuke, Natron or Vegas —
+  only smoke-tested through `ofxprobe`. Everything measured above is offline, on
+  one Apple M4 Max.
 - **The Windows build is compiled in CI and has never been run.**
 - **The FFT buffer's frequency mapping is undocumented.** The band split is
   logarithmic in bin index, which is right for any linear-in-frequency buffer and

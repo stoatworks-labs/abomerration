@@ -8,9 +8,10 @@
 > to 7e-07 of a frame width, with a control case that must disagree), measures
 > the rendered channel offsets against the displacement the controls asked for to
 > better than a pixel, and proves the same reaction arithmetic falls out of a
-> milliseconds host and a seconds host alike (see [Status](#status)). It has
-> **never been loaded into Resolume or Resolve** — only compiled, rendered and
-> measured offline. Check it in your own rig before trusting it in a show.
+> milliseconds host and a seconds host alike (see [Status](#status)). It has since
+> been **loaded into Resolume Arena and confirmed working**; the OpenFX build has
+> still never been opened in Resolve, and the Windows build is compiled in CI and
+> has never been run. Check it in your own rig before trusting it in a show.
 
 Sound-reactive chromatic aberration for [Resolume](https://resolume.com) Arena
 and Avenue, as an FFGL plugin — and the same lens again as an OpenFX plugin for
@@ -168,9 +169,15 @@ What they establish, and what they do not:
 | The bundle loads in a host | `ffgltest` instantiates it through `plugMain`, not just the class |
 | It will survive codesign | the OFX plist is checked against the binary and a copy is ad-hoc signed |
 
-**Never loaded into Resolume or Resolve.** Everything above is offline. The
-Windows build is compiled in CI and has never been run. No hardware, no show, no
-GPU other than an Apple M4 Max.
+**Loaded into Resolume Arena and confirmed working**, which is the one thing none
+of the checks above could establish — every one of them drives the plugin class
+directly or through `plugMain`, and none of them can say whether the twenty-four
+controls present sensibly in a real inspector.
+
+Still not done: the **OpenFX build has never been opened in Resolve**, Nuke,
+Natron or Vegas — only smoke-tested through `ofxprobe`. The **Windows build is
+compiled in CI and has never been run**. Nothing here has been through a show, and
+no GPU other than an Apple M4 Max has rendered it.
 
 **Known limit, measured:** at the cheapest Prism setting a hard black-to-white
 edge leaves about 5 of 255 of ripple in the fringe. Each wavelength sample reads
