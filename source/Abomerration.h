@@ -69,6 +69,12 @@
 class Abomerration : public CFFGLPlugin
 {
 public:
+	/// Clock test hook. The offline harness DECLARES its unit rather than
+	/// leaving the calibration to infer one -- an absolute time handed over in
+	/// a single frame is genuinely ambiguous, and an implicit unit is what let
+	/// the millisecond bug through in the first place.
+	void SetClockScaleForTest( double scale );
+
 	Abomerration();
 
 	//CFFGLPlugin
@@ -223,6 +229,10 @@ private:
 	double driftPhase   = 0.0;
 
 	double clockScale  = 0.0;///< 0 until decided; then 1.0 or 0.001
+	double lastWallTime = -1.0;
+	double wallStart    = -1.0;
+	int secondsVotes    = 0;
+	int millisVotes     = 0;
 	double lastRawTime = -1.0;
 
 	/// Counts frames so the sixtieth can log what the host's clock actually looks
@@ -238,7 +248,11 @@ private:
 
 	abomerration::drive::Output driveOut;
 
-	float params[ PT_COUNT ];
+	/// Zero-initialised: the constructor writes a default for every real
+	/// control, but the About block's ids are never stored to -- pressing a
+	/// button opens a browser and returns -- so without this GetFloatParameter
+	/// hands the host whatever was on the stack for them.
+	float params[ PT_COUNT ] = {};
 
 	/// GetTextParameter hands the host a bare pointer, so the string has to
 	/// outlive the call.

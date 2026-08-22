@@ -39,6 +39,9 @@ constexpr double kMaxFrameDelta = 0.1;
 
 /// Wall clock, for hosts that never call SetTime. Steady rather than system, so
 /// it cannot go backwards when the machine's clock is corrected mid-show.
+/// Frames that must agree before the host's clock unit is settled.
+constexpr int kClockVotes = 4;
+
 double wallSeconds()
 {
 	using namespace std::chrono;
@@ -176,7 +179,7 @@ Abomerration::Abomerration()
 
 	// The About block. Inline rather than through a helper: SetParamInfo is
 	// protected on CFFGLPlugin, so nothing outside the class can call it.
-	SetParamInfo( PT_ABOUT_FIRST, "About", FF_TYPE_TEXT, "" );
+	SetParamInfo( PT_ABOUT_FIRST, "About", FF_TYPE_TEXT, stoatworks::about::defaultText() );
 	{
 		FFUInt32 aboutId = PT_ABOUT_FIRST + 1;
 		for( const auto& b : stoatworks::about::buttons() )
@@ -332,18 +335,50 @@ FFResult Abomerration::ProcessOpenGL( ProcessOpenGLStruct* pGL )
 	// seconds; the decision lands within two frames and the delta clamp below
 	// absorbs the single mis-scaled step a late decision could produce.
 	//---------------------------------------------------------------------
-	const double raw = hostTime >= 0.0 ? hostTime : wallSeconds();
-	if( clockScale == 0.0 && lastRawTime >= 0.0 && raw > lastRawTime )
-	{
-		const double d = raw - lastRawTime;
-		if( d >= 0.001 && d <= 0.5 )
-			clockScale = 1.0;
-		else if( d >= 2.0 && d <= 500.0 )
-			clockScale = 0.001;
-	}
-	lastRawTime = raw;
+	// steady_clock says how much real time passed, the host says how much host
+	// time passed, and the ratio names the unit outright -- 1 for seconds,
+	// 1000 for milliseconds, and nothing plausible in between. This replaced a
+	// guess made from the magnitude of a single frame delta, which had three
+	// holes: a delta between 0.5 and 2.0 decided nothing, a burst of sub-0.5 ms
+	// frames at load locked it to "seconds" for the session, and while
+	// undecided it assumed seconds -- precisely the millisecond host's wrong
+	// answer.
+	const double wallNow = wallSeconds();
+	if( wallStart < 0.0 )
+		wallStart = wallNow;
 
-	const double now = raw * ( clockScale == 0.0 ? 1.0 : clockScale );
+	const double raw = hostTime;
+
+	if( clockScale == 0.0 && raw >= 0.0 && lastRawTime >= 0.0 && lastWallTime >= 0.0 )
+	{
+		const double hostDelta = raw - lastRawTime;
+		const double wallDelta = wallNow - lastWallTime;
+
+		// A paused host, a looping clip or a stalled frame tells us nothing.
+		if( hostDelta > 0.0 && wallDelta >= 0.0005 )
+		{
+			const double ratio = hostDelta / wallDelta;
+			if( ratio > 0.1 && ratio < 10.0 )
+				++secondsVotes;
+			else if( ratio > 100.0 && ratio < 10000.0 )
+				++millisVotes;
+
+			// Several frames rather than one, so a single odd frame cannot
+			// decide it alone.
+			if( secondsVotes >= kClockVotes || millisVotes >= kClockVotes )
+				clockScale = millisVotes > secondsVotes ? 0.001 : 1.0;
+		}
+	}
+
+	if( raw >= 0.0 )
+		lastRawTime = raw;
+	lastWallTime = wallNow;
+
+	// Until the unit is settled -- and for a host that never calls SetTime --
+	// run on the real clock: wrong in origin but right in rate, where assuming
+	// seconds would be a thousand times fast on Resolume.
+	const double now = ( raw >= 0.0 && clockScale != 0.0 ) ? raw * clockScale
+	                                                       : wallNow - wallStart;
 
 	//Drift integrates. See Abomerration.h: `time * rate` rescales the history and
 	//makes the noise field jump whenever the control is touched.
@@ -709,4 +744,9 @@ FFResult Abomerration::SetTextParameter( unsigned int index, const char* value )
 		return FF_SUCCESS;
 
 	return CFFGLPlugin::SetTextParameter( index, value );
+}
+
+void Abomerration::SetClockScaleForTest( double scale )
+{
+	clockScale = scale;
 }

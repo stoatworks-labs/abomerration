@@ -689,6 +689,7 @@ bool driveFrames( Driver& driver, const Target& target, GLuint input,
 		const double bars    = seconds / kBarSeconds;
 
 		driver.plugin.SetBeatInfo( 120.0f, static_cast< float >( bars - std::floor( bars ) ) );
+		driver.plugin.SetClockScaleForTest( 1.0 );//seconds, said out loud rather than inferred
 		driver.plugin.SetTime( seconds );
 
 		ok = driver.render( target, input, inputWidth, inputHeight );
@@ -1612,6 +1613,7 @@ bool checkClock()
 
 		for( int frame = 0; frame < kFrames; ++frame )
 		{
+			driver.plugin.SetClockScaleForTest( 1.0 );//seconds, said out loud rather than inferred
 			driver.plugin.SetTime( static_cast< double >( frame ) * perFrame );
 			driver.render( target, input, width, height );
 		}
@@ -1762,6 +1764,7 @@ bool bench()
 			const auto start      = std::chrono::steady_clock::now();
 			for( int frame = 0; frame < kFrames; ++frame )
 			{
+				driver.plugin.SetClockScaleForTest( 1.0 );//seconds, said out loud rather than inferred
 				driver.plugin.SetTime( static_cast< double >( frame ) / 60.0 );
 				driver.render( target, input, size.width, size.height );
 			}
@@ -1934,6 +1937,7 @@ void injectRhythm( Abomerration& plugin, double seconds )
 		plugin.SetParamElementValue( Abomerration::PT_AUDIO, static_cast< unsigned int >( i ), level[ i ] );
 
 	plugin.SetBeatInfo( static_cast< float >( kBpm ), static_cast< float >( barPhase ) );
+	plugin.SetClockScaleForTest( 1.0 );//seconds, said out loud rather than inferred
 	plugin.SetTime( seconds );
 }
 
