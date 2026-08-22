@@ -44,16 +44,16 @@ Nothing is uploaded.
 
 ## Download
 
-**[v0.1.1](https://github.com/stoatworks-labs/abomerration/releases/tag/v0.1.1)** — prebuilt for macOS and Windows. Pick your platform:
+**[v0.1.2](https://github.com/stoatworks-labs/abomerration/releases/tag/v0.1.2)** — prebuilt for macOS and Windows. Pick your platform:
 
 <details>
 <summary><b>macOS</b> — Universal (Apple Silicon + Intel)</summary>
 
 | Build | Download | Size |
 | --- | --- | --- |
-| Universal (Apple Silicon + Intel) · .dmg disk image | [`abomerration-0.1.1-macos-universal.dmg`](https://github.com/stoatworks-labs/abomerration/releases/download/v0.1.1/abomerration-0.1.1-macos-universal.dmg) | 224 KB |
-| Universal (Apple Silicon + Intel) · .zip archive | [`abomerration-macos-universal.zip`](https://github.com/stoatworks-labs/abomerration/releases/latest/download/abomerration-macos-universal.zip) | 178 KB |
-| Universal (Apple Silicon + Intel) · .zip archive (OpenFX — Resolve, Vegas, Nuke) | [`abomerration-ofx-macos-universal.zip`](https://github.com/stoatworks-labs/abomerration/releases/latest/download/abomerration-ofx-macos-universal.zip) | 258 KB |
+| Universal (Apple Silicon + Intel) · .dmg disk image | [`abomerration-0.1.2-macos-universal.dmg`](https://github.com/stoatworks-labs/abomerration/releases/download/v0.1.2/abomerration-0.1.2-macos-universal.dmg) | 227 KB |
+| Universal (Apple Silicon + Intel) · .zip archive | [`abomerration-macos-universal.zip`](https://github.com/stoatworks-labs/abomerration/releases/latest/download/abomerration-macos-universal.zip) | 181 KB |
+| Universal (Apple Silicon + Intel) · .zip archive (OpenFX — Resolve, Vegas, Nuke) | [`abomerration-ofx-macos-universal.zip`](https://github.com/stoatworks-labs/abomerration/releases/latest/download/abomerration-ofx-macos-universal.zip) | 264 KB |
 
 </details>
 
@@ -62,9 +62,9 @@ Nothing is uploaded.
 
 | Build | Download | Size |
 | --- | --- | --- |
-| x64 · .exe installer | [`abomerration-0.1.1-windows-x86_64-setup.exe`](https://github.com/stoatworks-labs/abomerration/releases/download/v0.1.1/abomerration-0.1.1-windows-x86_64-setup.exe) | 220 KB |
-| x64 · .zip archive | [`abomerration-windows-x86_64.zip`](https://github.com/stoatworks-labs/abomerration/releases/latest/download/abomerration-windows-x86_64.zip) | 112 KB |
-| x64 · .zip archive (OpenFX — Resolve, Vegas, Nuke) | [`abomerration-ofx-windows-x86_64.zip`](https://github.com/stoatworks-labs/abomerration/releases/latest/download/abomerration-ofx-windows-x86_64.zip) | 71 KB |
+| x64 · .exe installer | [`abomerration-0.1.2-windows-x86_64-setup.exe`](https://github.com/stoatworks-labs/abomerration/releases/download/v0.1.2/abomerration-0.1.2-windows-x86_64-setup.exe) | 223 KB |
+| x64 · .zip archive | [`abomerration-windows-x86_64.zip`](https://github.com/stoatworks-labs/abomerration/releases/latest/download/abomerration-windows-x86_64.zip) | 115 KB |
+| x64 · .zip archive (OpenFX — Resolve, Vegas, Nuke) | [`abomerration-ofx-windows-x86_64.zip`](https://github.com/stoatworks-labs/abomerration/releases/latest/download/abomerration-ofx-windows-x86_64.zip) | 77 KB |
 
 </details>
 
