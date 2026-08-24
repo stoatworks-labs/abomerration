@@ -190,3 +190,10 @@ passing:**
 its `AGENTS.md` for the shared build and release traps. `tinsel`, `downpour` and
 `orrery` are where the FFT and beat-sync patterns come from. `resolume-ofx-bridge`
 provides `ofxprobe` and `ffgltest`, both of which `verify.sh` uses when present.
+
+## Notes
+
+`docs/NOTES.md` carries this repo's working notes — current status, decisions
+already made, and the traps that have actually bitten. Read it before changing
+anything non-obvious. Cross-cutting fleet knowledge lives in
+[fleet-notes](https://github.com/stoatworks-labs/fleet-notes).
