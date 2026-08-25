@@ -1606,14 +1606,27 @@ bool checkClock()
 	//ways a host can express it.
 	constexpr int kFrames = 60;
 
-	auto driftAfter = [ & ]( double perFrame ) -> float {
+	//The unit is declared rather than inferred, and it has to be declared PER
+	//HOST -- that is the whole point of the check. The plugin decides the unit
+	//at run time by comparing the host's delta against the wall clock, which an
+	//offline harness cannot exercise: sixty frames render far faster than real
+	//time, the wall deltas fall under the 0.5 ms floor the vote requires, and
+	//nothing is ever decided. So each host says what it sends and the check is
+	//of what the plugin does with it downstream.
+	//
+	//Passing 1.0 for both is not a smaller version of this test, it is a
+	//different and false one: it tells the plugin that milliseconds are seconds,
+	//so every frame steps 16.67 "seconds", every delta clamps at kMaxFrameDelta,
+	//and the answer is 0.1 * 59 * 2 = 11.8 -- an artefact of the clamp rather
+	//than a measurement of anything.
+	auto driftAfter = [ & ]( double perFrame, double scale ) -> float {
 		Driver driver;
 		driver.plugin.SetFloatParameter( Abomerration::PT_GEOMETRY, 3.0f );//Turbulent
 		driver.plugin.SetFloatParameter( Abomerration::PT_DRIFT, 1.0f );
 
 		for( int frame = 0; frame < kFrames; ++frame )
 		{
-			driver.plugin.SetClockScaleForTest( 1.0 );//seconds, said out loud rather than inferred
+			driver.plugin.SetClockScaleForTest( scale );
 			driver.plugin.SetTime( static_cast< double >( frame ) * perFrame );
 			driver.render( target, input, width, height );
 		}
@@ -1621,8 +1634,8 @@ bool checkClock()
 		return driver.plugin.driftPhaseForTest();
 	};
 
-	const float seconds = driftAfter( 1.0 / 60.0 );
-	const float millis  = driftAfter( 1000.0 / 60.0 );
+	const float seconds = driftAfter( 1.0 / 60.0, 1.0 );
+	const float millis  = driftAfter( 1000.0 / 60.0, 0.001 );
 
 	//One second at the full Drift rate of 2 noise units per second, less one
 	//frame because the first frame has no previous frame to measure a delta
