@@ -79,6 +79,37 @@ is blind to any linear ramp and is the one that works.
 - Band split is **logarithmic in bin index** (bass = bottom sixteenth). Equal
   thirds puts the entire musical range in "bass" on a linear-frequency buffer.
 
+**The ms-vs-seconds check was itself broken from 2026-08-22 to 2026-08-25, and
+the shape of the failure is the lesson.** `abomtest --clock` exists for one trap:
+Resolume sends `SetTime` in MILLISECONDS, the FFGL header never says so, and a
+plugin consuming the clock raw is 1000x fast in the only host anyone runs it in
+while every other offline check still passes. The About-surface commit
+(`dfeb602`) replaced the plugin's magnitude guess at the unit with a vote against
+the wall clock — a better rule, but one **an offline harness cannot exercise**:
+60 frames render far faster than real time, every wall delta lands under the
+0.5 ms floor the vote needs, and nothing is ever decided. So it added
+`SetClockScaleForTest` to declare the unit instead, and pasted the same line into
+four places — one of them the lambda checkClock uses for BOTH hosts, saying
+`1.0` (seconds) for each.
+
+**The number is the tell.** It failed at 11.80000 against a wanted 1.96667 — six
+times out, not a thousand. That is `kMaxFrameDelta * 59 * 2` = `0.1 * 59 * 2`:
+the millisecond host was told its ms were seconds, so every frame stepped 16.67
+"seconds" and every delta clamped. The reported figure was the clamp, not a
+measurement, which is exactly why it did not look like the thousand-fold bug it
+was filed as. **The plugin was correct throughout.** Fixed by making the scale a
+parameter; proven by putting `raw` back in place of `raw * clockScale`, which
+restores 11.80000 precisely.
+
+Still uncovered, and honestly so: the vote itself. Deciding the unit from the
+wall clock is run-time behaviour no offline harness reproduces.
+
+**CI never saw any of it** — `ci.yml` does not run the full `verify.sh`, so this
+was green in CI and red on the desk for three days, and blocked the v0.1.3
+release until someone ran the harness by hand. Same shape as burin's sweep and
+flipbook's verify.sh, found in the same week: **a harness that is not in CI is a
+harness that is red until someone looks.**
+
 **Verified 23/23 by `tools/verify.sh`** from a clean universal build: field
 mirror to 7e-07 with a control case that must disagree (0.14); rendered channel
 offsets to better than a pixel; flat-field energy preservation; ripple below
