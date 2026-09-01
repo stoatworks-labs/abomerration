@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdio>
 #include <string>
 
 using namespace ffglex;
@@ -717,6 +718,91 @@ float Abomerration::GetFloatParameter( unsigned int index )
 		return 0.0f;
 
 	return params[ index ];
+}
+
+//---------------------------------------------------------------------------
+// What a control means
+//---------------------------------------------------------------------------
+//
+// ☠️ EVERY STRING BELOW MUST RENDER IN 16 CHARACTERS OR FEWER, AT ITS WIDEST
+// VALUE. FF_GET_PARAMETER_DISPLAY hands the host a 16-byte buffer -- the SDK's
+// own default writes into `static char s_DisplayValue[ 16 ]` -- and Resolume
+// copies 16 bytes with no terminator. Nothing plugin-side notices; only the
+// operator sees it cut. cogwheel shipped a release reading "0.63% of the she".
+char* Abomerration::GetParameterDisplay( unsigned int index )
+{
+	if( index >= PT_COUNT )
+		return nullptr;
+
+	char buffer[ 64 ] = {};
+	switch( index )
+	{
+	case PT_EDGES:
+	{
+		// Reported as inverted (#4), and it is not -- but nothing in the host
+		// said so, and the slider genuinely reads backwards: turning it UP makes
+		// the picture calmer. It weights the dispersion by local contrast, and
+		// real lateral aberration is invisible in flat areas because displacing
+		// a region of constant colour returns the same region. So 0 displaces
+		// the WHOLE picture -- the misregistered-camera look, and much the
+		// louder of the two -- and 1 confines it to edges, which is the
+		// physically honest one. The OFX build has carried that sentence in its
+		// parameter description since the beginning; FFGL has nowhere to put a
+		// description, so it goes here, in the only sixteen characters there are.
+		const float edges = params[ PT_EDGES ];
+		if( edges <= 0.0f )
+			std::snprintf( buffer, sizeof( buffer ), "whole picture" );//13
+		else if( edges >= 1.0f )
+			std::snprintf( buffer, sizeof( buffer ), "edges only" );//10
+		else
+			std::snprintf( buffer, sizeof( buffer ), "%.0f%% to edges", 100.0f * edges );//100% to edges = 13
+		break;
+	}
+	default:
+		return PlainDisplay( index );
+	}
+
+	displayValue = buffer;
+	return const_cast< char* >( displayValue.c_str() );
+}
+
+char* Abomerration::PlainDisplay( unsigned int index )
+{
+	if( index >= PT_COUNT )
+		return nullptr;
+
+	const unsigned int type = GetParamType( index );
+	if( type == FF_TYPE_TEXT || type == FF_TYPE_FILE )
+		return GetTextParameter( index );
+
+	char buffer[ 64 ] = {};
+	if( type == FF_TYPE_OPTION )
+	{
+		// The element's NAME, not its index. An option's display is the one
+		// place an operator can check that a dropdown is where they think it
+		// is, and a bare "3" is not that.
+		const unsigned int element = static_cast< unsigned int >(
+			std::max( 0L, std::lround( params[ index ] ) ) );
+		const char* name = element < GetNumParamElements( index )
+		                     ? GetParamElementName( index, element )
+		                     : nullptr;
+		std::snprintf( buffer, sizeof( buffer ), "%s", name != nullptr ? name : "?" );
+	}
+	else if( type == FF_TYPE_BOOLEAN || type == FF_TYPE_EVENT )
+	{
+		std::snprintf( buffer, sizeof( buffer ), "%s", params[ index ] > 0.5f ? "on" : "off" );
+	}
+	else if( type == FF_TYPE_INTEGER )
+	{
+		std::snprintf( buffer, sizeof( buffer ), "%ld", std::lround( params[ index ] ) );
+	}
+	else
+	{
+		std::snprintf( buffer, sizeof( buffer ), "%.3f", params[ index ] );
+	}
+
+	displayValue = buffer;
+	return const_cast< char* >( displayValue.c_str() );
 }
 
 char* Abomerration::GetTextParameter( unsigned int index )
