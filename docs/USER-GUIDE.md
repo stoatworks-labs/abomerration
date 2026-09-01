@@ -102,6 +102,12 @@ twice the gap to its neighbour.
 area, so this is what makes it read as a lens. Wind it to zero and you get the misregistered
 camera instead — every flat region shifted bodily.
 
+It is worth saying plainly, because it reads backwards: **turning Edges up makes the picture
+calmer, not louder.** At 0 the whole frame is displaced, which is the loudest the effect gets;
+at 1 the displacement is confined to real edges, which is the physically honest version. From
+v0.1.4 the control says so itself — the value shows `whole picture`, `50% to edges` or
+`edges only` rather than a bare number.
+
 ---
 
 ## Making it listen
