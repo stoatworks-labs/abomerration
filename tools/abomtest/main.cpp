@@ -1798,6 +1798,76 @@ bool bench()
 //---------------------------------------------------------------------------
 // --list
 //---------------------------------------------------------------------------
+/// Nothing an operator reads may exceed FFGL's sixteen characters.
+///
+/// The limit applies to the parameter's NAME and to its displayed VALUE alike:
+/// `FF_GET_PARAMETER_DISPLAY` hands the host a 16-byte buffer -- the SDK's own
+/// default writes into `static char s_DisplayValue[ 16 ]` -- and Resolume copies
+/// sixteen bytes with no terminator. Nothing plugin-side ever notices, which is
+/// how cogwheel shipped a release whose Nib read "0.63% of the she".
+///
+/// A display is a function of the VALUES, not of the parameter, so it is swept
+/// rather than read once at the defaults. Reading once is exactly what misses it.
+bool checkNames()
+{
+	Abomerration plugin;
+	bool ok = true;
+
+	for( unsigned int id = 0; id < Abomerration::PT_COUNT; ++id )
+	{
+		const char* name = plugin.GetParamName( id );
+		if( name == nullptr )
+			continue;
+		const size_t length = std::strlen( name );
+		if( length > 16 )
+		{
+			std::printf( "  name    %-3u %-28s %zu\n", id, name, length );
+			ok = false;
+		}
+	}
+
+	std::vector< float > defaults( Abomerration::PT_COUNT );
+	for( unsigned int id = 0; id < Abomerration::PT_COUNT; ++id )
+		defaults[ id ] = plugin.GetFloatParameter( id );
+
+	// Keyed by parameter, holding its widest offender -- keying by the rendered
+	// string reports one row per numeric value instead of one per broken format.
+	std::map< unsigned int, std::string > tooLong;
+
+	// Strictly below Abomerration::PT_ABOUT_FIRST: the About buttons OPEN A WEB BROWSER when
+	// their value is set, and a sweep would do it a few hundred times.
+	for( unsigned int swept = 0; swept < Abomerration::PT_ABOUT_FIRST; ++swept )
+	{
+		for( int step = 0; step <= 100; ++step )
+		{
+			plugin.SetFloatParameter( swept, static_cast< float >( step ) / 100.0f );
+
+			for( unsigned int id = 0; id < Abomerration::PT_ABOUT_FIRST; ++id )
+			{
+				const char* display = plugin.GetParameterDisplay( id );
+				if( display == nullptr )
+					continue;
+
+				const size_t length = std::strlen( display );
+				if( length > 16 && length > tooLong[ id ].size() )
+					tooLong[ id ] = display;
+			}
+		}
+		plugin.SetFloatParameter( swept, defaults[ swept ] );
+	}
+
+	for( const auto& entry : tooLong )
+	{
+		const char* name = plugin.GetParamName( entry.first );
+		std::printf( "  display %-3u %-18s %-24s %zu\n", entry.first, name ? name : "",
+		             entry.second.c_str(), entry.second.size() );
+		ok = false;
+	}
+
+	std::printf( "  %s\n", ok ? "PASS" : "FAIL" );
+	return ok;
+}
+
 void list( Abomerration& plugin )
 {
 	std::printf( "%-4s %-14s %-16s %s\n", "id", "type", "name", "default" );
@@ -2072,6 +2142,7 @@ int main( int argc, char** argv )
 	std::string scenePath;
 	std::string sheetPath;
 	bool wantList     = false;
+	bool wantNames = false;
 	bool wantField    = false;
 	bool wantOffset   = false;
 	bool wantSpectrum = false;
@@ -2104,6 +2175,8 @@ int main( int argc, char** argv )
 			scenePath = next( "--scene" );
 		else if( arg == "--sheet" )
 			sheetPath = next( "--sheet" );
+		else if( arg == "--names" )
+			wantNames = true;
 		else if( arg == "--list" )
 			wantList = true;
 		else if( arg == "--field" )
@@ -2219,6 +2292,12 @@ int main( int argc, char** argv )
 			std::fprintf( stderr, "could not write %s\n", scenePath.c_str() );
 			ok = false;
 		}
+	}
+
+	if( wantNames )
+	{
+		std::printf( "names and displays inside FFGL's 16 characters:\n" );
+		ok = checkNames() && ok;
 	}
 
 	if( wantList )

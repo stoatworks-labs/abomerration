@@ -89,6 +89,20 @@ public:
 
 	char* GetTextParameter( unsigned int index ) override;
 
+	/// What a control MEANS, in the sixteen characters FFGL allows.
+	///
+	/// Edges is the one that needs it: it reads backwards without a word next to
+	/// it, because turning it UP makes the effect subtler rather than stronger.
+	/// See the comment on the PT_EDGES case for why that is correct.
+	char* GetParameterDisplay( unsigned int index ) override;
+
+	/// The fallback for everything GetParameterDisplay does not word itself.
+	///
+	/// **Not** a call to `CFFGLPlugin::GetParameterDisplay`: the base class
+	/// reaches through `m_pPlugin`, which a harness-constructed instance does
+	/// not have, and segfaults. The fleet hit this in cogwheel first.
+	char* PlainDisplay( unsigned int index );
+
 	/// Display-only text still needs this.
 	///
 	/// The SDK's `instantiateGL` sets EVERY parameter's default on a fresh
@@ -257,4 +271,7 @@ private:
 	/// GetTextParameter hands the host a bare pointer, so the string has to
 	/// outlive the call.
 	std::string aboutText;
+
+	/// Same reason as aboutText: GetParameterDisplay returns a bare pointer.
+	std::string displayValue;
 };

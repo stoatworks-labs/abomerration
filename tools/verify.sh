@@ -176,6 +176,7 @@ run_check() {
     fi
 }
 
+run_check "names and displays fit FFGL's 16 characters"           "$BUILD/abomtest" --names
 run_check "field matches its GLSL mirror, all four geometries"    "$BUILD/abomtest" --field
 run_check "the picture moves by the distance asked for"          "$BUILD/abomtest" --offset
 run_check "the weight table preserves energy at every setting"   "$BUILD/abomtest" --spectrum
