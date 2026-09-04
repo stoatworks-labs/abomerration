@@ -25,7 +25,7 @@ static CFFGLPluginInfo PluginInfo(
 	0,                                                // Plugin major version number
 	1,                                                // Plugin minor version number
 	FF_EFFECT,                                        // Plugin type
-	"Sound-reactive chromatic aberration",            // Plugin description
+	"Sound-reactive chromatic aberration. Photographers spent a century getting rid of this; here it is again, wired to the music.\n\nA lens does not split a picture into three channels. It smears the whole spectrum along a path and the sensor integrates it, so this displaces the picture once per wavelength sample and adds the results up. The hard red/blue split is not a separate mode - it is what the same code does at three samples.\n\nEdges reads backwards on purpose: at 0 the whole picture is displaced, at 1 only the edges are. Turning it up makes the picture calmer.\n\nStart from a Preset, at the bottom.",// Plugin description
 	"Abomerration FFGL effect"                        // About
 );
 
