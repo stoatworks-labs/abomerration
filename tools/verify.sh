@@ -182,6 +182,7 @@ run_check "the picture moves by the distance asked for"          "$BUILD/abomtes
 run_check "the weight table preserves energy at every setting"   "$BUILD/abomtest" --spectrum
 run_check "the spectral quadrature leaves no visible footprint"  "$BUILD/abomtest" --quadrature
 run_check "every factory preset is distinct and non-degenerate"  "$BUILD/abomtest" --presets
+run_check "presets survive every host behaviour"                 "$BUILD/abomtest" --hosts
 
 # ---------------------------------------------------------------------------
 head_ "The reaction"
