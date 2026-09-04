@@ -18,6 +18,7 @@
         --drive           the reaction arithmetic, including the bar recovery
         --clock           milliseconds and seconds hosts produce the same drift
         --presets         every factory preset is distinct and non-degenerate
+        --hosts           presets survive every host behaviour
         --quadrature      the spectral quadrature has converged
         --bench           frame cost at 1080p and 4K
         --sheet PATH      a contact sheet of every geometry and spectrum
@@ -1660,6 +1661,102 @@ bool checkClock()
 }
 
 //---------------------------------------------------------------------------
+// --hosts
+//---------------------------------------------------------------------------
+/// Presets survive every host behaviour.
+///
+/// The host owns parameter state, and what it does with the values a preset
+/// writes is not a thing the plugin gets to decide. Three behaviours matter:
+/// a host that consumes the value events and pushes our own numbers back
+/// ("honours"), one that ignores them and carries on pushing what it still
+/// believes ("ignores"), and one that honours them but hands back a rounded
+/// copy ("quantises"). Resolume is the second and third.
+///
+/// This is the check that was missing here. Abomerration carried the fleet's
+/// preset shape but compared an incoming value against `params[]` alone, which
+/// only ever recognises the "honours" case -- so a host restating what it still
+/// believed read as an operator edit and the dropdown snapped back to Custom
+/// the instant a preset was chosen. Escapement #2, in a third plugin. It needs
+/// no GL, so it runs on a GPU-less runner.
+bool checkHosts()
+{
+	std::printf( "  preset                    honours   ignores   quantises\n" );
+
+	int count               = 0;
+	const unsigned int* ids = Abomerration::PresetParamIDsForTest( count );
+
+	enum Behaviour
+	{
+		Honours,
+		Ignores,
+		Quantises,
+		BehaviourCount
+	};
+
+	int failures = 0;
+	for( int i = 1; i <= presets::kCount; ++i )
+	{
+		bool result[ BehaviourCount ] = {};
+
+		for( int b = 0; b < BehaviourCount; ++b )
+		{
+			Abomerration plugin;
+
+			// What the host believes before the preset is chosen.
+			std::vector< float > believed( static_cast< size_t >( count ) );
+			for( int j = 0; j < count; ++j )
+				believed[ j ] = plugin.GetFloatParameter( ids[ j ] );
+
+			plugin.SetFloatParameter( Abomerration::PT_PRESET, static_cast< float >( i ) );
+
+			// Twice, because a host that pushes every frame pushes more than
+			// once and the bug this guards against only needed one.
+			for( int pass = 0; pass < 2; ++pass )
+			{
+				for( int j = 0; j < count; ++j )
+				{
+					float push = 0.0f;
+					switch( b )
+					{
+						case Honours: push = plugin.GetFloatParameter( ids[ j ] ); break;
+						case Ignores: push = believed[ j ]; break;
+						default:
+						{
+							const float value = plugin.GetFloatParameter( ids[ j ] );
+							push              = std::round( value * 1000.0f ) / 1000.0f;
+							break;
+						}
+					}
+					plugin.SetFloatParameter( ids[ j ], push );
+				}
+			}
+
+			bool ok = std::lround( plugin.GetFloatParameter( Abomerration::PT_PRESET ) ) == i;
+			for( int j = 0; j < count && ok; ++j )
+			{
+				const float expected = presets::kPresets[ i - 1 ].v[ j ];
+				if( expected < 0.0f )
+					continue;//not covered by this preset
+
+				//The same quantisation allowance the plugin itself uses.
+				if( std::fabs( plugin.GetFloatParameter( ids[ j ] ) - expected ) > 1.5e-3f )
+					ok = false;
+			}
+			result[ b ] = ok;
+			if( !ok )
+				++failures;
+		}
+
+		std::printf( "  %-24s %8s %9s %11s\n", presets::kPresets[ i - 1 ].name,
+		             result[ Honours ] ? "ok" : "FAIL",
+		             result[ Ignores ] ? "ok" : "FAIL",
+		             result[ Quantises ] ? "ok" : "FAIL" );
+	}
+
+	return failures == 0;
+}
+
+//---------------------------------------------------------------------------
 // --presets
 //---------------------------------------------------------------------------
 bool checkPresets()
@@ -2149,6 +2246,7 @@ int main( int argc, char** argv )
 	bool wantDrive    = false;
 	bool wantClock    = false;
 	bool wantPresets  = false;
+	bool wantHosts    = false;
 	bool wantBench    = false;
 	bool wantQuad     = false;
 	int frames        = 2;
@@ -2191,6 +2289,8 @@ int main( int argc, char** argv )
 			wantClock = true;
 		else if( arg == "--presets" )
 			wantPresets = true;
+		else if( arg == "--hosts" )
+			wantHosts = true;
 		else if( arg == "--bench" )
 			wantBench = true;
 		else if( arg == "--quadrature" )
@@ -2255,7 +2355,7 @@ int main( int argc, char** argv )
 
 	//--drive is the only mode that needs no GL at all, and it is worth being able
 	//to run it on a machine with no working context.
-	const bool needsGL = !( wantDrive && outPath.empty() && scenePath.empty() && sheetPath.empty()
+	const bool needsGL = !( ( wantDrive || wantHosts ) && outPath.empty() && scenePath.empty() && sheetPath.empty()
 	                        && !wantList && !wantField && !wantOffset && !wantSpectrum && !wantClock
 	                        && !wantPresets && !wantBench && !wantQuad && !pipeMode );
 
@@ -2340,6 +2440,12 @@ int main( int argc, char** argv )
 	{
 		std::printf( "the factory presets:\n" );
 		ok = checkPresets() && ok;
+	}
+
+	if( wantHosts )
+	{
+		std::printf( "presets survive every host behaviour:\n" );
+		ok = checkHosts() && ok;
 	}
 
 	if( wantQuad )
