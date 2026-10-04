@@ -28,6 +28,22 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.."
 
+# resolume-ofx-bridge, for ffgltest and ofxprobe. It sits beside this repo's
+# checkout -- and from a git worktree `..` is the worktrees folder, not
+# Projects/resolume, so the main checkout is found through git's common dir as
+# well. ABOMERRATION_BRIDGE overrides both.
+BRIDGE="${ABOMERRATION_BRIDGE:-}"
+if [ -z "$BRIDGE" ]; then
+    for candidate in "../resolume-ofx-bridge" \
+                     "$(dirname "$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)")/../resolume-ofx-bridge"; do
+        if [ -d "$candidate/build" ]; then
+            BRIDGE="$candidate"
+            break
+        fi
+    done
+fi
+BRIDGE="${BRIDGE:-../resolume-ofx-bridge}"
+
 PASS=0
 FAIL=0
 
@@ -344,7 +360,7 @@ head_ "FFGL bundle loads in a host"
 # About text line and no override cannot be instantiated by any real host, while
 # every check above passes because they bypass plugMain entirely. It has shipped
 # broken in this fleet before.
-FFGLTEST="../resolume-ofx-bridge/build/ffgltest"
+FFGLTEST="$BRIDGE/build/ffgltest"
 if [ -x "$FFGLTEST" ]; then
     if "$FFGLTEST" "$BUILD/Abomerration.bundle" > /tmp/abomerration-ffgltest.log 2>&1 \
        && grep -F 'instantiated ok' /tmp/abomerration-ffgltest.log > /dev/null \
@@ -365,7 +381,7 @@ fi
 # ---------------------------------------------------------------------------
 head_ "OpenFX render"
 # ---------------------------------------------------------------------------
-PROBE="../resolume-ofx-bridge/build/ofxprobe"
+PROBE="$BRIDGE/build/ofxprobe"
 if [ -x "$PROBE" ]; then
     if "$PROBE" --dir "$BUILD" --render com.stoatworks.abomerration --size 320x180 \
                 --out /tmp/abomerration-ofx.bmp > /tmp/abomerration-probe.log 2>&1; then
