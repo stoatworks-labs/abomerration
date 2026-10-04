@@ -68,6 +68,7 @@ constexpr const char* kPluginDescription =
 	"tangential like nothing at all, and a drifting turbulent field.\n\n"
 	"The sound-reactive controls are FFGL only -- OFX has no beat information and "
 	"no audio -- so this build is the manual lens. The Resolume version reacts.\n\n"
+	"Fusion reports no frame rate; there, time-based controls assume 24 fps.\n\n"
 	"https://stoatworks-labs.com";
 
 constexpr const char* kParamPreset     = "preset";
@@ -574,6 +575,46 @@ private:
 	bool wasPremultiplied = false;
 };
 
+/// The frame rate when the host reports none: 24, Resolve's default timeline
+/// rate. Resolve's Fusion page reports no frame rate anywhere.
+constexpr double kFallbackFrameRate = 24.0;
+
+/// OFX time is in frames. This is the first positive, finite frame rate the
+/// host gives -- the output clip's, the source clip's, the effect's -- else
+/// kFallbackFrameRate. Each read is its own try: Resolve's Fusion page gives
+/// kOfxImageEffectPropFrameRate on neither the effect nor any clip, the
+/// Support library throws on a property the host lacks, and a throw out of
+/// render fails the render -- in Fusion, a composition that "could not be
+/// processed successfully".
+double framesPerSecond( const OFX::ImageEffect& effect, const OFX::Clip* output, const OFX::Clip* source )
+{
+	const auto usable = []( double rate ) { return std::isfinite( rate ) && rate > 0.0; };
+	for( const OFX::Clip* clip : { output, source } )
+	{
+		if( clip == nullptr )
+			continue;
+		try
+		{
+			const double rate = clip->getFrameRate();
+			if( usable( rate ) )
+				return rate;
+		}
+		catch( ... )
+		{
+		}
+	}
+	try
+	{
+		const double rate = effect.getFrameRate();
+		if( usable( rate ) )
+			return rate;
+	}
+	catch( ... )
+	{
+	}
+	return kFallbackFrameRate;
+}
+
 class AbomerrationPlugin : public OFX::ImageEffect
 {
 public:
@@ -768,8 +809,8 @@ private:
 		// Drift is time * rate here, not integrated. See the header: OFX renders
 		// frames in any order, so there is no previous frame to integrate from.
 		// Seconds rather than frames, so a given Drift looks the same in a 24 fps
-		// timeline and a 60 fps one.
-		const double fps      = srcClip->getFrameRate() > 0.0 ? srcClip->getFrameRate() : 25.0;
+		// timeline and a 60 fps one. Fusion reports no frame rate; there it is 24.
+		const double fps      = framesPerSecond( *this, dstClip, srcClip );
 		const float driftPhase = static_cast< float >( time / fps )
 		                         * abomerration::controls::driftRate( host );
 
