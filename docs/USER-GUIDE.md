@@ -29,8 +29,9 @@ a real lens does.*
 > proved identical whether the host counts in milliseconds or seconds.
 >
 > **It has been loaded into Resolume Arena and confirmed working**, which is the one thing none of
-> those checks could establish. Still open: the **OpenFX build has never been opened in Resolve**,
-> Nuke, Natron or Vegas — only smoke-tested through a probe; the **Windows build is compiled in CI
+> those checks could establish. The OpenFX build renders as a tool on Resolve's Fusion page from
+> v0.1.8, which fixed every render failing there. Still open: the **OpenFX build has never been
+> run on Resolve's other pages**, in Nuke, Natron or Vegas; the **Windows build is compiled in CI
 > and has never been run**; no GPU other than an Apple M4 Max has rendered it; and none of it has
 > been through a show.
 >

@@ -204,9 +204,11 @@ passing:**
 
 **Assumed, or simply not done:**
 
-- **The OpenFX build has never been opened in Resolve**, Nuke, Natron or Vegas —
-  only smoke-tested through `ofxprobe`. Everything measured above is offline, on
-  one Apple M4 Max.
+- **The OpenFX build has only been run on Resolve's Fusion page**: from v0.1.8
+  (the frame-rate guard) it renders there as a tool, MediaIn → Abomerration →
+  MediaOut, in DaVinci Resolve Studio 21.1 on macOS (2026-10-04). Never on
+  Resolve's other pages, in Nuke, Natron or Vegas. Everything measured above is
+  offline, on one Apple M4 Max.
 - **The Windows build is compiled in CI and has never been run.**
 - **The FFT buffer's frequency mapping is undocumented.** The band split is
   logarithmic in bin index, which is right for any linear-in-frequency buffer and

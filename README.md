@@ -10,8 +10,9 @@
 > better than a pixel, and proves the same reaction arithmetic falls out of a
 > milliseconds host and a seconds host alike (see [Status](#status)). It has since
 > been **loaded into Resolume Arena and confirmed working**; the OpenFX build has
-> still never been opened in Resolve, and the Windows build is compiled in CI and
-> has never been run. Check it in your own rig before trusting it in a show.
+> rendered as a tool on Resolve's Fusion page (from v0.1.8, which fixed every
+> render failing there) and nowhere else, and the Windows build is compiled in CI
+> and has never been run. Check it in your own rig before trusting it in a show.
 
 Sound-reactive chromatic aberration for [Resolume](https://resolume.com) Arena
 and Avenue, as an FFGL plugin — and the same lens again as an OpenFX plugin for
@@ -190,10 +191,12 @@ of the checks above could establish — every one of them drives the plugin clas
 directly or through `plugMain`, and none of them can say whether the twenty-four
 controls present sensibly in a real inspector.
 
-Still not done: the **OpenFX build has never been opened in Resolve**, Nuke,
-Natron or Vegas — only smoke-tested through `ofxprobe`. The **Windows build is
-compiled in CI and has never been run**. Nothing here has been through a show, and
-no GPU other than an Apple M4 Max has rendered it.
+Still not done: the **OpenFX build has only been run on Resolve's Fusion page** —
+v0.1.8 renders there as a tool in DaVinci Resolve Studio 21.1 on macOS, where
+earlier builds failed every frame — and never on Resolve's other pages or in Nuke,
+Natron or Vegas. The **Windows build is compiled in CI and has never been run**.
+Nothing here has been through a show, and no GPU other than an Apple M4 Max has
+rendered it.
 
 **Known limit, measured:** at the cheapest Prism setting a hard black-to-white
 edge leaves about 5 of 255 of ripple in the fringe. Each wavelength sample reads
