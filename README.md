@@ -3,19 +3,19 @@
 > **AI-assisted project.** This codebase was created with [Claude](https://claude.com/claude-code)
 > (Anthropic), directed and reviewed by a human author. The lens is verified
 > numerically by an offline harness that drives the real plugin class in a
-> headless GL context: it compares the dispersion field the GPU actually wrote
+> headless GL context. It compares the dispersion field the GPU actually wrote
 > against an independent C++ implementation across all four geometries (agreeing
-> to 7e-07 of a frame width, with a control case that must disagree), measures
+> to 7e-07 of a frame width, with a control case that has to disagree), measures
 > the rendered channel offsets against the displacement the controls asked for to
-> better than a pixel, and proves the same reaction arithmetic falls out of a
-> milliseconds host and a seconds host alike (see [Status](#status)). It has since
-> been **loaded into Resolume Arena and confirmed working**; the OpenFX build has
-> rendered as a tool on Resolve's Fusion page (from v0.1.8, which fixed every
+> better than a pixel, and shows the same reaction arithmetic falls out of a
+> milliseconds host and a seconds host alike (see [Status](#status)). Since then
+> it's been **loaded into Resolume Arena and confirmed working**. The OpenFX build
+> has rendered as a tool on Resolve's Fusion page (from v0.1.8, which fixed every
 > render failing there) and nowhere else, and the Windows build is compiled in CI
 > and has never been run. Check it in your own rig before trusting it in a show.
 
 Sound-reactive chromatic aberration for [Resolume](https://resolume.com) Arena
-and Avenue, as an FFGL plugin — and the same lens again as an OpenFX plugin for
+and Avenue, as an FFGL plugin, and the same lens again as an OpenFX plugin for
 Resolve, Nuke, Natron and Vegas. Photographers spent a century getting rid of
 chromatic aberration. This puts it back, wires it to the music, and keeps going
 well past anything glass could do.
@@ -23,8 +23,8 @@ well past anything glass could do.
 ![Radial dispersion with a full spectral fringe, growing toward the corners](docs/hero.png)
 
 <sub>Radial geometry at Prism 32 with Edges up: warm fringes on the inner side of
-each edge, cool on the outer, growing with distance from the optical centre — and
-the flat areas untouched, because that is what a real lens does. Rendered by
+each edge, cool on the outer, growing with distance from the optical centre, and
+the flat areas untouched, because that's what a real lens does. Rendered by
 `abomtest`, the offline harness.</sub>
 
 ![Every geometry against every spectrum setting](docs/contact-sheet.png)
@@ -34,10 +34,10 @@ Prism 16, Prism 32. The left column is the hard channel offset; the rest are the
 same code integrating more of the spectrum.</sub>
 
 **Try it in your browser, with your own footage:**
-[abomerration-demo.stoatworks-labs.com](https://abomerration-demo.stoatworks-labs.com)
-— the plugin's own shaders in WebGL2, with a kick-and-hats pattern synthesised on
-the page to drive them, because a browser has no Resolume to route audio from.
-Nothing is uploaded.
+[abomerration-demo.stoatworks-labs.com](https://abomerration-demo.stoatworks-labs.com).
+It runs the plugin's own shaders in WebGL2, with a kick-and-hats pattern synthesised
+on the page to drive them, because a browser has no Resolume to route audio from.
+Nothing gets uploaded.
 
 **Video:** [What it does, in 49 seconds](https://www.youtube.com/watch?v=l49OH5N5KUI)
 
@@ -86,15 +86,15 @@ macOS builds are signed and notarised and open normally. The Windows builds are 
 
 ## The one idea
 
-**A lens does not split a picture into three channels.** It focuses every
+**A lens doesn't split a picture into three channels.** It focuses every
 wavelength at a slightly different magnification, and the coloured fringe you see
 at the edge of a frame is the whole visible spectrum smeared along that path and
 then integrated by the sensor.
 
 So this plugin displaces the picture **once per wavelength sample** and adds the
-results up through spectral weights. The familiar hard red/blue split is not a
-separate mode or a different code path — it is what this becomes when you ask for
-three samples, because the three-sample weight table is the identity. That is why
+results up through spectral weights. The familiar hard red/blue split isn't a
+separate mode or a different code path. It's what this becomes when you ask for
+three samples, because the three-sample weight table is the identity. That's why
 one control spans "cheap 1990s channel offset" and "real prismatic fringe" with
 nothing else changing.
 
@@ -104,34 +104,34 @@ times four spectrum settings is eight pieces of code rather than sixteen.
 
 ## What it does
 
-**Four geometries.** *Radial* is what a real uncorrected lens does — zero on the
+**Four geometries.** *Radial* is what a real uncorrected lens does: zero on the
 axis, worst in the corners. *Linear* is a prism in front of it, or a three-strip
 camera out of registration, with no optical centre at all. *Tangential* rotates
 each wavelength about the centre instead of pushing it outward, which no lens
 does. *Turbulent* takes its direction from a drifting noise field, and is the
 abomination the plugin is named for.
 
-**Four ways for the music to drive it**, every one off by default — dropped on a
+**Four ways for the music to drive it**, every one off by default. Dropped on a
 layer with nothing routed, this is an ordinary manual aberration lens and behaves
 like one:
 
 - a **beat pulse** locked to the host's transport, on any division from a quarter
   beat to two bars, with a decay from a linear ramp to a click;
 - an **overall level** pump;
-- a **band split**, where bass, mid and treble each push their own channel — so
-  the picture comes apart along with the mix rather than merely pumping;
+- a **band split**, where bass, mid and treble each push their own channel, so
+  the picture comes apart along with the mix rather than just pumping;
 - **manual channel trims** on top of all of it.
 
 Depth is *carved out of* the amount rather than added on top, so full depth means
 silence renders a clean picture and the beat renders the whole effect.
 
 **Edges** weights the dispersion by local contrast, because real lateral
-aberration is invisible in a flat area — displacing a region of constant colour
+aberration is invisible in a flat area: displacing a region of constant colour
 returns the same region. At zero you get the misregistered-camera look instead.
 
 **Show Field** paints the dispersion magnitude over a dim picture, with four
 meters along the bottom for bass, mid, treble and beat. It exists because a flat
-region with an enormous displacement looks exactly like one with none, and
+region with an enormous displacement looks identical to one with none, and
 because "is it hearing anything at all?" is otherwise unanswerable inside
 Resolume.
 
@@ -147,7 +147,7 @@ Download from [Releases](https://github.com/stoatworks-labs/abomerration/release
   `/Library/OFX/Plugins`
 
 The OFX build is the manual lens only. OFX has no beat information and no audio
-input — neither is in the API — so the reactive controls are not present there
+input (neither is in the API), so the reactive controls are left out there
 rather than shown doing nothing.
 
 **Resolve's Fusion page reports the frame rate on the effect but not on its clips.**
@@ -172,7 +172,7 @@ macOS builds universal by default. `-DBUILD_OFX=OFF` skips the OpenFX target.
 ## Status
 
 `tools/verify.sh` runs 22 checks from a clean universal build, and all 22 pass.
-What they establish, and what they do not:
+What they show, and what they don't:
 
 | Checked | How |
 | --- | --- |
@@ -187,13 +187,13 @@ What they establish, and what they do not:
 | It will survive codesign | the OFX plist is checked against the binary and a copy is ad-hoc signed |
 
 **Loaded into Resolume Arena and confirmed working**, which is the one thing none
-of the checks above could establish — every one of them drives the plugin class
+of the checks above could establish: every one of them drives the plugin class
 directly or through `plugMain`, and none of them can say whether the twenty-four
-controls present sensibly in a real inspector.
+controls make sense in a real inspector.
 
-Still not done: the **OpenFX build has only been run on Resolve's Fusion page** —
-v0.1.8 renders there as a tool in DaVinci Resolve Studio 21.1 on macOS, where
-earlier builds failed every frame — and never on Resolve's other pages or in Nuke,
+Still not done: the **OpenFX build has only been run on Resolve's Fusion page**
+(v0.1.8 renders there as a tool in DaVinci Resolve Studio 21.1 on macOS, where
+earlier builds failed every frame), and never on Resolve's other pages or in Nuke,
 Natron or Vegas. The **Windows build is compiled in CI and has never been run**.
 Nothing here has been through a show, and no GPU other than an Apple M4 Max has
 rendered it.
