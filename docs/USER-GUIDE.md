@@ -24,7 +24,7 @@ nothing else changing.
 growing with distance from the optical centre, and the flat areas untouched, because that's what
 a real lens does.*
 
-> **Before you rely on this:** 22 automated checks pass from a clean universal build. The GLSL
+> **Before you rely on this:** 25 automated checks pass from a clean universal build. The GLSL
 > field agrees with an independent C++ implementation to 7e-07 of a frame width across all four
 > geometries (with a control case that has to disagree), the rendered channel offsets match the
 > displacement the controls asked for to better than a pixel, and the reaction arithmetic is

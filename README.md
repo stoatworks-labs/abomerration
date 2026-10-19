@@ -171,7 +171,7 @@ macOS builds universal by default. `-DBUILD_OFX=OFF` skips the OpenFX target.
 
 ## Status
 
-`tools/verify.sh` runs 22 checks from a clean universal build, and all 22 pass.
+`tools/verify.sh` runs 25 checks from a clean universal build, and all 25 pass.
 What they show, and what they don't:
 
 | Checked | How |

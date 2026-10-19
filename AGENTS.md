@@ -181,8 +181,8 @@ is the only thing on this page that no check could have established — every ch
 drives the plugin class directly or through `plugMain`, and none of them can say
 whether twenty-four controls present sensibly in somebody's inspector.
 
-**Verified, by measurement, from a clean universal build — 23 checks, all
-passing:**
+**Verified, by measurement, from a clean universal build — 25 checks, all
+passing (v0.1.8):**
 
 - the GLSL field against the C++ across all four geometries, worst disagreement
   7e-07 of a frame width, **with a control case that must and does disagree**

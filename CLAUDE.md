@@ -37,7 +37,7 @@ clock.
 - Install for Resolve: copy the bundle into `/Library/OFX/Plugins`.
 
 ## Verify
-- Everything (22 checks, clean universal build): `tools/verify.sh`
+- Everything (25 checks, clean universal build): `tools/verify.sh`
 - The GLSL field against `Dispersion.cpp`: `./build/abomtest --field`
 - The picture moves the distance asked for: `./build/abomtest --offset`
 - Spectrum preserves energy: `./build/abomtest --spectrum`
