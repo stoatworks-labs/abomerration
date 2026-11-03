@@ -20,6 +20,8 @@ Resolve, Nuke, Natron and Vegas. Photographers spent a century getting rid of
 chromatic aberration. This puts it back, wires it to the music, and keeps going
 well past anything glass could do.
 
+The [project page](https://stoatworks-labs.com/software/abomerration/) has the downloads, the [user guide](https://stoatworks-labs.com/software/abomerration/guide/) and the video.
+
 ![Radial dispersion with a full spectral fringe, growing toward the corners](docs/hero.png)
 
 <sub>Radial geometry at Prism 32 with Edges up: warm fringes on the inner side of
